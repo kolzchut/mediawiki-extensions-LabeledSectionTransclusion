@@ -523,7 +523,9 @@ class LabeledSectionTransclusion {
 			$begin_off = 0;
 			$head_len = 6;
 		} else {
-			$pat = '^(={1,6})\s*' . preg_quote( $sec, '/' ) . '\s*\1\s*($)';
+			//WR: changed pattern to ignore comments on the same line as the heading
+			//$pat = '^(={1,6})\s*' . preg_quote( $sec, '/' ) . '\s*\1\s*($)';
+			$pat = '^(={1,6})\s*' . preg_quote( $sec, '/' ) . '\s*\1\s*(?:<!--(?!-->).*-->)?\s*($)' ;
 			if ( preg_match( "/$pat/im", $text, $m, PREG_OFFSET_CAPTURE ) ) {
 				$begin_off = $m[2][1];
 				$head_len = strlen( $m[1][0] );
@@ -536,14 +538,18 @@ class LabeledSectionTransclusion {
 		if ( $to != '' ) {
 			// if $to is supplied, try and match it. If we don't match, just
 			// ignore it.
-			$pat = '^(={1,6})\s*' . preg_quote( $to, '/' ) . '\s*\1\s*$';
+			//WR: changed pattern to ignore comments on the same line as the heading
+			//$pat = '^(={1,6})\s*' . preg_quote( $to, '/' ) . '\s*\1\s*$';
+			$pat = '^(={1,6})\s*' . preg_quote( $to, '/' ) . '\s*\1\s*(?:<!--(?!-->).*-->)?\s*$';
 			if ( preg_match( "/$pat/im", $text, $m, PREG_OFFSET_CAPTURE, $begin_off ) ) {
 				$end_off = $m[0][1] - 1;
 			}
 		}
 
 		if ( !isset( $end_off ) ) {
-			$pat = '^(={1,' . $head_len . '})(?!=).*?\1\s*$';
+			//WR: changed pattern to ignore comments on the same line as the heading
+			//$pat = '^(={1,' . $head_len . '})(?!=).*?\1\s*$';
+			$pat = '^(={1,' . $head_len . '})(?!=).*?\1\s*(?:<!--(?!-->).*-->)?\s*$';
 			if ( preg_match( "/$pat/im", $text, $m, PREG_OFFSET_CAPTURE, $begin_off ) ) {
 				$end_off = $m[0][1] - 1;
 			}
