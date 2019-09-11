@@ -21,5 +21,8 @@
 			"LabeledSectionTransclusion::setup"
 		]
 	},
+	"config": {
+		"LabeledSectionTransclusionTrim": true
+	},
 	"manifest_version": 1
 }
