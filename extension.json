@@ -4,6 +4,9 @@
 	"url": "https://www.mediawiki.org/wiki/Extension:Labeled_Section_Transclusion",
 	"descriptionmsg": "lst-desc",
 	"license-name": "GPL-2.0-or-later",
+	"requires": {
+		"MediaWiki": ">= 1.35.0"
+	},
 	"type": "parserhook",
 	"MessagesDirs": {
 		"LabeledSectionTransclusion": [
@@ -13,16 +16,19 @@
 	"ExtensionMessagesFiles": {
 		"LabeledSectionTransclusionMagic": "LabeledSectionTransclusion.i18n.magic.php"
 	},
-	"AutoloadClasses": {
-		"LabeledSectionTransclusion": "includes/LabeledSectionTransclusion.php"
+	"AutoloadNamespaces": {
+		"MediaWiki\\Extension\\LabeledSectionTransclusion\\": "includes/"
 	},
 	"Hooks": {
-		"ParserFirstCallInit": [
-			"LabeledSectionTransclusion::setup"
-		]
+		"ParserFirstCallInit": "LabeledSectionTransclusionHookHandler"
+	},
+	"HookHandlers": {
+		"LabeledSectionTransclusionHookHandler": {
+			"class": "MediaWiki\\Extension\\LabeledSectionTransclusion\\Hooks"
+		}
 	},
 	"config": {
 		"LabeledSectionTransclusionTrim": true
 	},
-	"manifest_version": 1
+	"manifest_version": 2
 }
