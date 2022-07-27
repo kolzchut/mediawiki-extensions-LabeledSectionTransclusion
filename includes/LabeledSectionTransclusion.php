@@ -21,16 +21,16 @@ class LabeledSectionTransclusion {
 	 * @return bool
 	 */
 	private static function open( $parser, $part1 ) {
-		if ( !isset( $parser->mTemplatePath ) ) {
-			$parser->mTemplatePath = [];
+		if ( !isset( $parser->getOutput()->mTemplatePath ) ) {
+			$parser->getOutput()->mTemplatePath = [];
 		}
 
 		// Infinite loop test
-		if ( isset( $parser->mTemplatePath[$part1] ) ) {
+		if ( isset( $parser->getOutput()->mTemplatePath[$part1] ) ) {
 			wfDebug( __METHOD__ . ": template loop broken at '$part1'\n" );
 			return false;
 		} else {
-			$parser->mTemplatePath[$part1] = 1;
+			$parser->getOutput()->mTemplatePath[$part1] = 1;
 			return true;
 		}
 	}
