@@ -28,7 +28,9 @@
 		}
 	},
 	"config": {
-		"LabeledSectionTransclusionTrim": true
+		"LabeledSectionTransclusionTrim": {
+			"value": true
+		}
 	},
 	"manifest_version": 2
 }
