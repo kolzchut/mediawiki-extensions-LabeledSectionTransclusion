@@ -22,16 +22,18 @@ class LabeledSectionTransclusion {
 	 */
 	private static function open( $parser, $part1 ) {
 		// This property on Parser has been deprecated: T360573
-		if ( !isset( $parser->mTemplatePath ) ) {
-			$parser->mTemplatePath = [];
+		// WikiRights's version sets this on ParserOutput to prevent false positives
+		// when multiple parses are done in the same request
+		if ( !isset( $parser->getOutput()->mTemplatePath ) ) {
+			$parser->getOutput()->mTemplatePath = [];
 		}
 
 		// Infinite loop test
-		if ( isset( $parser->mTemplatePath[$part1] ) ) {
+		if ( isset( $parser->getOutput()->mTemplatePath[$part1] ) ) {
 			wfDebug( __METHOD__ . ": template loop broken at '$part1'\n" );
 			return false;
 		} else {
-			$parser->mTemplatePath[$part1] = 1;
+			$parser->getOutput()->mTemplatePath[$part1] = 1;
 			return true;
 		}
 	}
@@ -48,6 +50,12 @@ class LabeledSectionTransclusion {
 	 * @todo handle mixed-case </section>
 	 */
 	private static function parse( $parser, $title, $text, $part1, $skiphead = 0 ) {
+		global $wgLabeledSectionTransclusionTrim;
+
+		if ( $wgLabeledSectionTransclusionTrim === true ) {
+			$text = trim( $text );
+		}
+
 		// if someone tries something like<section begin=blah>lst only</section>
 		// text, may as well do the right thing.
 		$text = str_replace( '</section>', '', $text );
@@ -446,7 +454,9 @@ class LabeledSectionTransclusion {
 			$begin_off = 0;
 			$head_len = 6;
 		} else {
-			$pat = '^(={1,6})\s*' . preg_quote( $sec, '/' ) . '\s*\1\s*($)';
+			//WR: changed pattern to ignore comments on the same line as the heading
+			//$pat = '^(={1,6})\s*' . preg_quote( $sec, '/' ) . '\s*\1\s*($)';
+			$pat = '^(={1,6})\s*' . preg_quote( $sec, '/' ) . '\s*\1\s*(?:<!--(?!-->).*-->)?\s*($)' ;
 			if ( preg_match( "/$pat/im", $text, $m, PREG_OFFSET_CAPTURE ) ) {
 				$begin_off = $m[2][1];
 				$head_len = strlen( $m[1][0] );
@@ -461,14 +471,18 @@ class LabeledSectionTransclusion {
 		if ( $to != '' ) {
 			// if $to is supplied, try and match it. If we don't match, just
 			// ignore it.
-			$pat = '^(={1,6})\s*' . preg_quote( $to, '/' ) . '\s*\1\s*$';
+			//WR: changed pattern to ignore comments on the same line as the heading
+			//$pat = '^(={1,6})\s*' . preg_quote( $to, '/' ) . '\s*\1\s*$';
+			$pat = '^(={1,6})\s*' . preg_quote( $to, '/' ) . '\s*\1\s*(?:<!--(?!-->).*-->)?\s*$';
 			if ( preg_match( "/$pat/im", $text, $m, PREG_OFFSET_CAPTURE, $begin_off ) ) {
 				$end_off = $m[0][1] - 1;
 			}
 		}
 
 		if ( $end_off === null ) {
-			$pat = '^(={1,' . $head_len . '})(?!=).*?\1\s*$';
+			//WR: changed pattern to ignore comments on the same line as the heading
+			//$pat = '^(={1,' . $head_len . '})(?!=).*?\1\s*$';
+			$pat = '^(={1,' . $head_len . '})(?!=).*?\1\s*(?:<!--(?!-->).*-->)?\s*$';
 			if ( preg_match( "/$pat/im", $text, $m, PREG_OFFSET_CAPTURE, $begin_off ) ) {
 				$end_off = $m[0][1] - 1;
 			}

@@ -31,5 +31,10 @@
 			"class": "MediaWiki\\Extension\\LabeledSectionTransclusion\\Hooks"
 		}
 	},
+	"config": {
+		"LabeledSectionTransclusionTrim": {
+			"value": true
+		}
+	},
 	"manifest_version": 2
 }
