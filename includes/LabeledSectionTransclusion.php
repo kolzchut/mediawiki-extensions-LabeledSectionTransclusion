@@ -15,25 +15,26 @@ class LabeledSectionTransclusion {
 	 */
 
 	/**
-	 * Register what we're working on in the parser, so we don't fall into a trap.
+	 * Register what we're working on in the parser, so we don't fall into a loop
+	 * Upstream removed this entire function, claiming it didn't prevent loops,
+	 * but we're not sure, so we just fixed it to use ParserOutput instead.
 	 * @param Parser $parser
 	 * @param string $part1
 	 * @return bool
 	 */
 	private static function open( $parser, $part1 ) {
-		// This property on Parser has been deprecated: T360573
+		$parserOutput = $parser->getOutput();
 		// WikiRights's version sets this on ParserOutput to prevent false positives
 		// when multiple parses are done in the same request
-		if ( !isset( $parser->getOutput()->mTemplatePath ) ) {
-			$parser->getOutput()->mTemplatePath = [];
-		}
+		$lstTemplatePath = $parserOutput->getExtensionData( 'LSTTemplatePath' ) ?? [];
 
 		// Infinite loop test
-		if ( isset( $parser->getOutput()->mTemplatePath[$part1] ) ) {
+		if ( isset( $lstTemplatePath[$part1] ) ) {
 			wfDebug( __METHOD__ . ": template loop broken at '$part1'\n" );
 			return false;
 		} else {
-			$parser->getOutput()->mTemplatePath[$part1] = 1;
+			$lstTemplatePath[$part1] = 1;
+			$parserOutput->setExtensionData( 'LSTTemplatePath', $lstTemplatePath );
 			return true;
 		}
 	}
