@@ -150,7 +150,7 @@ class LabeledSectionTransclusion {
 
 		if ( $title === null || $title->isExternal() ) {
 			$text = '';
-			return true;
+			return false;
 		} else {
 			[ $text, $title ] = $parser->fetchTemplateAndTitle( $title );
 		}
