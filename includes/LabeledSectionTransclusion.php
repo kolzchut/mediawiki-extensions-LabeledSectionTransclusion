@@ -146,7 +146,7 @@ class LabeledSectionTransclusion {
 
 		if ( $title === null ) {
 			$text = '';
-			return true;
+			return false;
 		} else {
 			list( $text, $title ) = $parser->fetchTemplateAndTitle( $title );
 		}

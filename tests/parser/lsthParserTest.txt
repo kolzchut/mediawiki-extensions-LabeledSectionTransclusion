@@ -115,3 +115,10 @@ don't transclude content within noinclude tags
 broken noinclude tags.
 </p>
 !! end
+
+!! test
+transclude with invalid page name should not crash
+!! wikitext
+{{#lsth:{{{1}}}|1}}
+!! html
+!! end
