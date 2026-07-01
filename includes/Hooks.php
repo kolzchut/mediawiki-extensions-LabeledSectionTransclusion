@@ -24,6 +24,9 @@ class Hooks implements ParserFirstCallInitHook {
 			'lstx', [ LabeledSectionTransclusion::class, 'pfuncExcludeObj' ], Parser::SFH_OBJECT_ARGS
 		);
 		$parser->setFunctionHook( 'lsth', [ LabeledSectionTransclusion::class, 'pfuncIncludeHeading' ] );
+		$parser->setFunctionHook(
+			'lstall', [ LabeledSectionTransclusion::class, 'pfuncIncludeAny' ], Parser::SFH_OBJECT_ARGS
+		);
 	}
 
 	/**

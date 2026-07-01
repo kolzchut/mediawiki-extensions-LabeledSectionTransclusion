@@ -21,6 +21,7 @@ $magicWords['en'] = [
 	'lst' => [ 0, 'lst', 'section' ],
 	'lstx' => [ 0, 'lstx', 'section-x' ],
 	'lsth' => [ 0, 'lsth', 'section-h' ],
+	'lstall' => [ 0, 'lstall', 'section-all' ],
 ];
 
 $magicWords['de'] = [
