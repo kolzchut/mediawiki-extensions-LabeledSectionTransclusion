@@ -272,6 +272,27 @@ class LabeledSectionTransclusion {
 	 * @return array|string
 	 */
 	public static function pfuncIncludeObj( $parser, $frame, $args ) {
+		$text = self::getSectionText( $parser, $frame, $args );
+		if ( $text === null ) {
+			$parser->addTrackingCategory( "lst-invalid-section-category" );
+			return '';
+		}
+		return $text;
+	}
+
+	/**
+	 * Core of #lst: transclude the labeled <section>...</section> identified
+	 * by $args, or return null if no matching section exists on the (existing)
+	 * target page. Unlike pfuncIncludeObj() this does NOT add the tracking
+	 * category, so callers such as pfuncIncludeAny() can decide whether a miss
+	 * is really an error.
+	 *
+	 * @param Parser $parser
+	 * @param PPFrame $frame
+	 * @param array $args
+	 * @return string|null
+	 */
+	private static function getSectionText( $parser, $frame, $args ) {
 		$setup = self::setupPfunc12( $parser, $frame, $args, 'lst' );
 		if ( !is_array( $setup ) ) {
 			return $setup;
@@ -351,7 +372,7 @@ class LabeledSectionTransclusion {
 			$node = $node->getNextSibling();
 		}
 		if ( !$foundSection ) {
-			$parser->addTrackingCategory( "lst-invalid-section-category" );
+			return null;
 		}
 		return $text;
 	}
@@ -445,6 +466,27 @@ class LabeledSectionTransclusion {
 	 * @return mixed|string
 	 */
 	public static function pfuncIncludeHeading( $parser, $page = '', $sec = '', $to = '' ) {
+		$text = self::getHeadingText( $parser, $page, $sec, $to );
+		if ( $text === null ) {
+			$parser->addTrackingCategory( "lst-invalid-section-category" );
+			return '';
+		}
+		return $text;
+	}
+
+	/**
+	 * Core of #lsth: transclude the content beneath the === heading ===
+	 * identified by $sec (optionally up to $to), or return null if no such
+	 * heading exists on the (existing) target page. Unlike
+	 * pfuncIncludeHeading() this does NOT add the tracking category.
+	 *
+	 * @param Parser $parser
+	 * @param string $page
+	 * @param string $sec
+	 * @param string $to
+	 * @return string|null
+	 */
+	private static function getHeadingText( $parser, $page = '', $sec = '', $to = '' ) {
 		if ( self::getTemplateText( $parser, $page, $title, $text ) == false ) {
 			return $text;
 		}
@@ -462,8 +504,7 @@ class LabeledSectionTransclusion {
 				$begin_off = $m[2][1];
 				$head_len = strlen( $m[1][0] );
 			} else {
-				$parser->addTrackingCategory( "lst-invalid-section-category" );
-				return '';
+				return null;
 			}
 
 		}
@@ -503,5 +544,45 @@ class LabeledSectionTransclusion {
 		$result = trim( $result );
 
 		return self::parse( $parser, $title, $result, "#lsth:{$page}|{$sec}", $nhead );
+	}
+
+	/**
+	 * #lstall: transclude a portion of a page identified either by a
+	 * === heading === (as #lsth does) or by <section> labels (as #lst does),
+	 * whichever exists. Tries the heading first — matching the historical
+	 * {{#lsth:...}}{{#lst:...}} template idiom used on-wiki — then falls back
+	 * to a labeled section.
+	 *
+	 * The "nonexistent section" tracking category is added only when BOTH
+	 * lookups miss. This avoids the false positive inherent in the old idiom,
+	 * where a name that is legitimately a heading (but not a <section>), or
+	 * vice-versa, always tripped the category via the one function that could
+	 * never match it.
+	 *
+	 * @param Parser $parser
+	 * @param PPFrame $frame
+	 * @param array $args
+	 * @return string
+	 */
+	public static function pfuncIncludeAny( $parser, $frame, $args ) {
+		$page = isset( $args[0] ) ? trim( $frame->expand( $args[0] ) ) : '';
+		$sec = isset( $args[1] ) ? trim( $frame->expand( $args[1] ) ) : '';
+		$to = isset( $args[2] ) ? trim( $frame->expand( $args[2] ) ) : '';
+
+		// Prefer a classical heading (the common case in the on-wiki idiom).
+		$text = self::getHeadingText( $parser, $page, $sec, $to );
+		if ( $text !== null ) {
+			return $text;
+		}
+
+		// Fall back to a labeled <section>.
+		$text = self::getSectionText( $parser, $frame, $args );
+		if ( $text !== null ) {
+			return $text;
+		}
+
+		// Neither a heading nor a labeled section by that name exists.
+		$parser->addTrackingCategory( "lst-invalid-section-category" );
+		return '';
 	}
 }

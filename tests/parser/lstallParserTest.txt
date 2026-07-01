@@ -1,0 +1,63 @@
+!! Version 2
+
+# Tests for #lstall, which transcludes a portion of a page identified
+# either by a classical === heading === (like #lsth) or by <section>
+# labels (like #lst), whichever exists, and only adds the
+# "nonexistent section" tracking category when BOTH lookups miss.
+
+# Force the test runner to ensure the extension is loaded
+!! hooks
+section
+!! endhooks
+
+!! functionhooks
+lstall
+!! endfunctionhooks
+
+# This is the standard article assumed to exist. It carries BOTH a
+# classical heading ("heading") and a labeled <section> ("sec").
+!! article
+LstAllTarget
+!! text
+this is the intro
+==heading==
+
+under the heading
+
+==other==
+
+<section begin=sec/>labeled body<section end=sec/>
+!! endarticle
+
+!! test
+lstall: transclude by classical heading (no false-positive category)
+!! options
+cat
+!! wikitext
+{{#lstall:LstAllTarget|heading}}
+!! html/php
+<p>under the heading
+</p>
+!! end
+
+!! test
+lstall: transclude by labeled section (no false-positive category)
+!! options
+cat
+!! wikitext
+{{#lstall:LstAllTarget|sec}}
+!! html/php
+<p>labeled body
+</p>
+!! end
+
+!! test
+lstall: neither heading nor section exists adds the tracking category
+!! options
+cat
+!! wikitext
+{{#lstall:LstAllTarget|does not exist}}
+!! html/php
+!! metadata
+cat=Pages_transcluding_nonexistent_sections sort=
+!! end
