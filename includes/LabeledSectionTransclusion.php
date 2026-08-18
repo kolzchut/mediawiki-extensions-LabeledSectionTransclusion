@@ -9,6 +9,30 @@ use MediaWiki\Title\Title;
 
 class LabeledSectionTransclusion {
 
+	/**
+	 * Magic word ids holding the localised spelling of the <section> tag and of
+	 * its begin/end attributes. They are name tables rather than invocable
+	 * magic words — see LabeledSectionTransclusion.i18n.magic.php.
+	 */
+	public const MW_TAG = 'lst_tag';
+	private const MW_ATTR_BEGIN = 'lst_attr_begin';
+	private const MW_ATTR_END = 'lst_attr_end';
+
+	/**
+	 * Every accepted spelling of a magic word on this wiki, in fallback order.
+	 *
+	 * LocalisationCache merges magic word synonyms down the language fallback
+	 * chain, so the English name is always present and a wiki also inherits the
+	 * names of the languages it falls back to.
+	 *
+	 * @param Parser $parser
+	 * @param string $magicWordId
+	 * @return string[]
+	 */
+	public static function getNames( Parser $parser, string $magicWordId ): array {
+		return $parser->getMagicWordFactory()->get( $magicWordId )->getSynonyms();
+	}
+
 	/*
 	 * To do transclusion from an extension, we need to interact with the parser
 	 * at a low level. This is the general transclusion functionality
@@ -48,7 +72,6 @@ class LabeledSectionTransclusion {
 	 * @param string $part1 Key for cycle detection
 	 * @param int $skiphead Number of source string headers to skip for numbering
 	 * @return mixed string or magic array of bits
-	 * @todo handle mixed-case </section>
 	 */
 	private static function parse( $parser, $title, $text, $part1, $skiphead = 0 ) {
 		global $wgLabeledSectionTransclusionTrim;
@@ -58,8 +81,11 @@ class LabeledSectionTransclusion {
 		}
 
 		// if someone tries something like<section begin=blah>lst only</section>
-		// text, may as well do the right thing.
-		$text = str_replace( '</section>', '', $text );
+		// text, may as well do the right thing. str_ireplace() rather than
+		// str_replace() so that a mixed-case closing tag is caught too.
+		foreach ( self::getNames( $parser, self::MW_TAG ) as $tagName ) {
+			$text = str_ireplace( "</$tagName>", '', $text );
+		}
 
 		if ( self::open( $parser, $part1 ) ) {
 			// Try to get edit sections correct by munging around the parser's guts.
@@ -91,18 +117,15 @@ class LabeledSectionTransclusion {
 	/**
 	 * Generate a regex fragment matching the attribute portion of a section tag
 	 * @param string $sec Name of the target section
-	 * @param string $type Either "begin" or "end" depending on the type of section tag to be matched
-	 * @param string $lang
+	 * @param string[] $attrNames Accepted spellings of the "begin" or "end" attribute
 	 * @return string
 	 */
-	private static function getAttrPattern( $sec, $type, $lang ) {
+	private static function getAttrPattern( $sec, array $attrNames ) {
 		$sec = preg_quote( $sec, '/' );
 		$ws = "(?:\s+[^>]*)?"; // was like $ws="\s*"
-		$attrs = [ $type ];
-		$localName = Hooks::getLocalName( $type, $lang );
-		if ( $localName !== null ) {
-			$attrs[] = $localName;
-		}
+		$attrs = array_map( static function ( $name ) {
+			return preg_quote( $name, '/' );
+		}, $attrNames );
 		$attrName = '(?i:' . implode( '|', $attrs ) . ')';
 		return "$ws\s+$attrName\s*=\s*([\"']?)$sec\\1$ws";
 	}
@@ -219,10 +242,9 @@ class LabeledSectionTransclusion {
 			$end = trim( $frame->expand( array_shift( $args ) ) );
 		}
 
-		$lang = $parser->getContentLanguage()->getCode();
-		$beginAttr = self::getAttrPattern( $begin, 'begin', $lang );
+		$beginAttr = self::getAttrPattern( $begin, self::getNames( $parser, self::MW_ATTR_BEGIN ) );
 		$beginRegex = "/^$beginAttr$/s";
-		$endAttr = self::getAttrPattern( $end, 'end', $lang );
+		$endAttr = self::getAttrPattern( $end, self::getNames( $parser, self::MW_ATTR_END ) );
 		$endRegex = "/^$endAttr$/s";
 
 		return [
@@ -236,18 +258,20 @@ class LabeledSectionTransclusion {
 	}
 
 	/**
-	 * Returns true if the given extension name is "section"
+	 * Returns true if the given extension name is one of the section tag's
+	 * accepted spellings on this wiki
 	 * @param string $name
-	 * @param string $lang
+	 * @param string[] $tagNames
 	 * @return bool
 	 */
-	private static function isSection( $name, $lang ) {
+	private static function isSection( $name, array $tagNames ) {
 		$name = strtolower( $name );
-		$sectionLocal = Hooks::getLocalName( 'section', $lang );
-		return (
-			$name === 'section'
-			|| ( $sectionLocal !== null && $name === strtolower( $sectionLocal ) )
-		);
+		foreach ( $tagNames as $tagName ) {
+			if ( $name === strtolower( $tagName ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -310,7 +334,7 @@ class LabeledSectionTransclusion {
 		$endRegex = $setup['endRegex'];
 		$begin = $setup['begin'];
 
-		$lang = $parser->getContentLanguage()->getCode();
+		$tagNames = self::getNames( $parser, self::MW_TAG );
 		$text = '';
 		$node = $root->getFirstChild();
 		$foundSection = false;
@@ -326,7 +350,7 @@ class LabeledSectionTransclusion {
 					}
 					$parts = $node->splitExt();
 					$parts = array_map( [ $newFrame, 'expand' ], $parts );
-					if ( self::isSection( $parts['name'], $lang ) ) {
+					if ( self::isSection( $parts['name'], $tagNames ) ) {
 						// @phan-suppress-next-line SecurityCheck-ReDoS
 						if ( preg_match( $beginRegex, $parts['attr'] ) ) {
 							$found = true;
@@ -346,7 +370,7 @@ class LabeledSectionTransclusion {
 				if ( $node->getName() === 'ext' ) {
 					$parts = $node->splitExt();
 					$parts = array_map( [ $newFrame, 'expand' ], $parts );
-					if ( self::isSection( $parts['name'], $lang ) ) {
+					if ( self::isSection( $parts['name'], $tagNames ) ) {
 						// @phan-suppress-next-line SecurityCheck-ReDoS
 						if ( preg_match( $endRegex, $parts['attr'] ) ) {
 							$found = true;
@@ -401,7 +425,7 @@ class LabeledSectionTransclusion {
 		$endRegex = $setup['endRegex'];
 		$repl = $setup['repl'];
 
-		$lang = $parser->getContentLanguage()->getCode();
+		$tagNames = self::getNames( $parser, self::MW_TAG );
 		$text = '';
 		// phpcs:ignore Generic.CodeAnalysis.JumbledIncrementer.Found
 		for ( $node = $root->getFirstChild(); $node; $node = $node ? $node->getNextSibling() : false ) {
@@ -411,7 +435,7 @@ class LabeledSectionTransclusion {
 				if ( $node->getName() == 'ext' ) {
 					$parts = $node->splitExt();
 					$parts = array_map( [ $newFrame, 'expand' ], $parts );
-					if ( self::isSection( $parts['name'], $lang ) ) {
+					if ( self::isSection( $parts['name'], $tagNames ) ) {
 						// @phan-suppress-next-line SecurityCheck-ReDoS
 						if ( preg_match( $beginRegex, $parts['attr'] ) ) {
 							$found = true;
@@ -438,7 +462,7 @@ class LabeledSectionTransclusion {
 				if ( $node->getName() == 'ext' ) {
 					$parts = $node->splitExt();
 					$parts = array_map( [ $newFrame, 'expand' ], $parts );
-					if ( self::isSection( $parts['name'], $lang ) ) {
+					if ( self::isSection( $parts['name'], $tagNames ) ) {
 						// @phan-suppress-next-line SecurityCheck-ReDoS
 						if ( preg_match( $endRegex, $parts['attr'] ) ) {
 							$text .= self::expandSectionNode( $parser, $newFrame, $parts );
