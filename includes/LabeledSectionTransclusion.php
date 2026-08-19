@@ -74,12 +74,6 @@ class LabeledSectionTransclusion {
 	 * @return mixed string or magic array of bits
 	 */
 	private static function parse( $parser, $title, $text, $part1, $skiphead = 0 ) {
-		global $wgLabeledSectionTransclusionTrim;
-
-		if ( $wgLabeledSectionTransclusionTrim === true ) {
-			$text = trim( $text );
-		}
-
 		// if someone tries something like<section begin=blah>lst only</section>
 		// text, may as well do the right thing. str_ireplace() rather than
 		// str_replace() so that a mixed-case closing tag is caught too.
