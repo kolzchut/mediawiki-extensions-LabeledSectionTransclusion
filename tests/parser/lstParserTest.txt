@@ -151,7 +151,7 @@ LST: Exclude a section
 !! wikitext
 {{#lstx:sections|1}}
 !! html
-<p>1
+<p>1 
 </p><p>2 sec 2
 </p><p>3 sec 3
 </p><p>a sec a
@@ -164,7 +164,7 @@ LST: Exclude a range
 !! wikitext
 {{#lstx:sections|1||3}}
 !! html
-<p>1
+<p>1 
 </p><p>a sec a
 </p><p>...
 </p>
