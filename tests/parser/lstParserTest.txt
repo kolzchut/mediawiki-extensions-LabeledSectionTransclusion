@@ -583,3 +583,76 @@ LST: Allow whitespace in section tag
 <p>sec spacey
 </p>
 !! end
+
+!! article
+Sections in Portuguese
+!! text
+1 <trecho começo=1/>sec 1<trecho fim=1/>
+!! endarticle
+
+!! article
+Sections in Hebrew
+!! text
+1 <קטע התחלה=1/>sec 1<קטע סוף=1/>
+
+2 <קטע begin=2/>sec 2<קטע end=2/>
+
+3 <section התחלה=3/>sec 3<section סוף=3/>
+!! endarticle
+
+!! test
+LST: Transclude a section in Portuguese (#lst)
+!! options
+language=pt
+!! wikitext
+{{#lst:sections in Portuguese|1}}
+!! html
+<p>sec 1
+</p>
+!! end
+
+# pt-br has no tag names of its own; it inherits pt's through the language
+# fallback chain, which is what storing them as magic words buys us.
+!! test
+LST: Transclude a section in a language that inherits its tag names (#lst)
+!! options
+language=pt-br
+!! wikitext
+{{#lst:sections in Portuguese|1}}
+!! html
+<p>sec 1
+</p>
+!! end
+
+!! test
+LST: Transclude a section in Hebrew (#lst)
+!! options
+language=he
+!! wikitext
+{{#lst:sections in Hebrew|1}}
+!! html
+<p>sec 1
+</p>
+!! end
+
+!! test
+LST: Localised tag with English attribute (#lst)
+!! options
+language=he
+!! wikitext
+{{#lst:sections in Hebrew|2}}
+!! html
+<p>sec 2
+</p>
+!! end
+
+!! test
+LST: English tag with localised attribute (#lst)
+!! options
+language=he
+!! wikitext
+{{#lst:sections in Hebrew|3}}
+!! html
+<p>sec 3
+</p>
+!! end
